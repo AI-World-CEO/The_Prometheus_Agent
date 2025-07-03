@@ -1,0 +1,74 @@
+# Prometheus_Agent/requirements.txt
+#
+# ==============================================================================
+# A-1 Gold Standard: Project Dependencies (Complete & Verified)
+# ==============================================================================
+# This file lists all external Python packages required by the Prometheus Agent.
+# It is organized by functional category for clarity.
+#
+# To install all dependencies, run the following command from the project root:
+# pip install -r requirements.txt
+# ==============================================================================
+
+
+# --- Core Application, Web API & AI Interaction ---
+# Foundational libraries for the agent's logic, API, configuration, and LLM communication.
+
+aiofiles~=23.2.1          # For asynchronous file operations.
+elevenlabs~=1.3.0          # Client for ElevenLabs Text-to-Speech API.
+fastapi~=0.111.0           # High-performance web framework.
+httpx~=0.27.0              # A next-generation, async-capable HTTP client, used by Mutator for local models.
+openai~=1.17.0             # Official client for OpenAI APIs (GPT models).
+pydantic~=2.7.0            # Core data validation and settings management library.
+python-dotenv~=1.0.1       # For loading environment variables from .env files.
+pyyaml~=6.0.1              # For parsing YAML configuration files (e.g., Super_Brain.yaml).
+uvicorn[standard]~=0.29.0  # The lightning-fast ASGI server, required to run the FastAPI application.
+
+
+# --- Data Persistence & Archival ---
+# Libraries for storing agent data, metadata, and vector embeddings.
+
+faiss-cpu~=1.8.0           # Vector similarity search library for the agent's memory.
+SQLAlchemy~=1.4.52         # The database ORM. Pinned to v1.4 for stable compatibility with existing ORM syntax.
+
+
+# --- Data Science & Geometric Toolkit ---
+# Libraries for numerical computation, graph-based logic, and data manipulation.
+
+networkx~=3.3              # For graph-based logic (e.g., QuantumOptimizer, Visualizer).
+numpy~=1.26.4              # Fundamental package for scientific computing, used in agent state vectors.
+pandas~=2.2.2              # Data analysis and manipulation tool, used by Visualizer.
+scikit-learn~=1.4.2        # Machine learning tools for dimensionality reduction in Visualizer.
+
+
+# --- Quantum Computing Toolkit (Qiskit) ---
+# The core Qiskit libraries for quantum simulation and optimization algorithms.
+
+qiskit~=1.1.0              # The main Qiskit metapackage.
+qiskit-aer~=0.14.1         # High-performance simulators for quantum circuits.
+qiskit-algorithms~=0.3.0   # High-level algorithms, including QAOA.
+qiskit-ibm-runtime~=0.23.0 # Client for interacting with IBM Quantum hardware and simulators.
+qiskit-optimization~=0.6.1 # For optimization problems and QUBO formulations.
+
+
+# --- Graphical User Interface (GUI) & Visualization ---
+# Libraries for the desktop GUI and generating visual representations of agent data.
+
+asyncqt~=0.8.0             # Enables asyncio event loop integration with PyQt.
+kaleido~=0.2.1             # Required by Plotly to export static images.
+plotly~=5.22.0             # Interactive graphing library for visualization.
+PyOpenGL~=3.1.7            # OpenGL bindings, potentially for advanced 3D visualizations.
+PyQt5~=5.15.11             # The core framework for the desktop GUI.
+
+
+# --- Sandboxing & Utilities ---
+# Utilities for sandboxed code execution and user feedback.
+
+docker~=7.1.0              # For creating and managing isolated sandboxing environments.
+tqdm~=4.66.4               # For displaying smart progress bars during long-running tasks.
+
+
+# --- Development & Testing Framework ---
+# Tools to ensure code quality, correctness, and reliability.
+
+pytest~=8.2.0              # The recommended test runner for the project's test suites.

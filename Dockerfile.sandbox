@@ -1,0 +1,18 @@
+# Prometheus_Agent/Dockerfile.sandbox
+#
+# This defines the minimal, secure execution environment for the agent's
+# code sandbox. It uses a slim Python base image and does not install any
+# extra packages, reducing the potential attack surface.
+
+# Use a specific, slim version of Python for security and reproducibility.
+FROM python:3.11-slim
+
+# Set a working directory inside the container.
+WORKDIR /sandbox
+
+# This ensures that Python output is sent straight to the terminal without
+# being buffered, which is crucial for capturing stdout/stderr in real-time.
+ENV PYTHONUNBUFFERED 1
+
+# The container will simply wait for a command to be run when it starts.
+CMD ["/bin/bash"]
