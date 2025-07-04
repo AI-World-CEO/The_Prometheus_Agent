@@ -1,0 +1,98 @@
+# Prometheus_Agent/.gitignore
+
+# --- Python ---
+# Byte-compiled / optimized / C extensions
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+.env/
+.venv
+venv.bak
+.env.bak
+
+# --- Secrets ---
+# The .env file is explicitly ignored to prevent committing secret API keys.
+.env
+*.env.*
+!/.env.example
+
+# --- IDE / Editor specific files ---
+.idea/
+.vscode/
+*.swp
+*~
+*.sublime-project
+*.sublime-workspace
+
+# --- Test Artifacts ---
+.pytest_cache/
+.coverage
+htmlcov/
+*.prof
+*.lprof
+*.cprof
+
+# --- OS-specific files ---
+# macOS
+.DS_Store
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# --- Project Specific ---
+# Ignore generated archive files and databases. These are data, not source code.
+Archives/
+*.sqlite
+*.sqlite-journal
+
+# Ignore generated log files and reports
+Logs/
+*.log
+*.md.html
+evaluation_suite_results.json
+evaluation_summary.md
+
+# Ignore generated visualization files
+*.html
+*.png
+
+# Ignore Terraform state files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+
+# --- Agent Runtime Artifacts ---
+# Ignore backup files created by the ASI_Core during self-modification.
+*.bak

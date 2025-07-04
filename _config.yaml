@@ -1,0 +1,9 @@
+# _config.yml
+# This file configures the GitHub Pages site.
+
+title: The Prometheus Agent
+description: An experimental, self-improving AGI architecture future ASI Protector of Humanity.
+
+# This injects your unique Google verification tag into the <head> of your website.
+head_custom:
+  - '<meta name="google-site-verification" content="KPVjBJ-RvQs3ZWE6b2ngBeEtEvoKPR1x6QnQ8-G3Zvs" />'

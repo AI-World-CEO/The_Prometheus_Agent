@@ -1,6 +1,5 @@
 # populate_knowledge_base.py
 
-import os
 import sys
 import json
 import yaml
@@ -10,10 +9,14 @@ from typing import Dict, Any, List
 from tqdm.asyncio import tqdm
 import logging
 
+from prometheus_agent.CognitiveGovernor import CognitiveGovernor
+from prometheus_agent.Ethics_Core_Foundation import EthicsCoreFoundation
+from prometheus_agent.Mutator import Mutator, SynthesisError
+
 # --- Path Setup & Logging ---
 # This ensures the script can find all the necessary agent components.
 PROJECT_ROOT = Path(__file__).resolve().parent
-SOURCE_ROOT = PROJECT_ROOT / "Prometheus_Agent"
+SOURCE_ROOT = PROJECT_ROOT / "prometheus_agent"
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
@@ -22,9 +25,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] [%(n
 log = logging.getLogger("KnowledgePopulator")
 
 # --- Agent Component Imports ---
-from Prometheus_Agent.Src.Mutator import Mutator, SynthesisError
-from Prometheus_Agent.Prometheus.CognitiveGovernor import CognitiveGovernor
-from Prometheus_Agent.Prometheus.Ethics_Core_Foundation import EthicsCoreFoundation
+
 
 # --- The Knowledge Structure You Defined ---
 # This is your architectural blueprint, converted into a Python dictionary.

@@ -1,0 +1,59 @@
+{
+  "agent_name": "Prometheus_Agent",
+  "version": "23.0",
+  "utility_function": "To autonomously and continuously improve its own capabilities in order to solve complex problems, generate novel insights, and assist users with maximum accuracy, safety, and utility.",
+  "axioms": [
+    "Do not generate content that could be misconstrued as unlicensed professional advice in regulated fields (e.g., legal, medical).",
+    "Do not modify core safety or ethical validation components (e.g., EthicsCoreFoundation, SelfModificationController).",
+    "Do not compromise the primary self-improvement loop (ASI_Core)."
+  ],
+  "cognitive_toolkit": {
+    "request_timeout": 300,
+    "max_retries": 5
+  },
+  "llm_models": {
+    "provider": "local",
+    "default_model": "phi3",
+    "power_model": "llama3:8b",
+    "fast_model": "phi3",
+    "local_api_base_url": "http://localhost:11434/v1",
+    "openai_api_key": null
+  },
+  "skill_routing": {
+    "domain_classifier": "fast_model",
+    "asi_hypothesis": "power_model",
+    "asi_mutation": "power_model",
+    "manifold_planning": "power_model",
+    "manifold_knowledge": "fast_model",
+    "manifold_code_gen": "power_model",
+    "manifold_synthesis": "fast_model",
+    "evaluator_judge": "fast_model",
+    "knowledge_transmutation": "power_model"
+  },
+  "sandboxing": {
+    "enable_docker": true
+  },
+  "asi_core": {
+    "auto_start_self_modification": true,
+    "run_interval_seconds": 90,
+    "target_modules": {
+      "Prometheus.CognitiveManifold": "Prometheus_Agent/Prometheus/CognitiveManifold.py",
+      "Prometheus.ASI_Core": "Prometheus_Agent/Prometheus/ASI_Core.py",
+      "Prometheus.EthicsCore": "Prometheus_Agent/Prometheus/Ethics_Core_Foundation.py",
+      "Prometheus.GUI": "Prometheus_Agent/Prometheus/PersonalGUI.py",
+      "Prometheus.CognitiveGovernor": "Prometheus_Agent/Prometheus/CognitiveGovernor.py",
+      "Src.Mutator": "Prometheus_Agent/Src/Mutator.py",
+      "Src.Evaluator": "Prometheus_Agent/Src/Evaluator.py",
+      "Src.SandboxRunner": "Prometheus_Agent/Src/SandboxRunner.py",
+      "Src.KnowledgeTransmutor": "Prometheus_Agent/Src/KnowledgeTransmutor.py",
+      "Src.Agent": "Prometheus_Agent/Src/Agent.py",
+      "Src.ArchivesManager": "Prometheus_Agent/Src/ArchivesManager.py",
+      "Src.Geometry.GeometricTransformer": "Prometheus_Agent/Src/Geometry/GeometricTransformer.py",
+      "Src.Quantum.QuantumMutator": "Prometheus_Agent/Src/Quantum/QuantumMutator.py",
+      "PrometheusAgent": "Prometheus_Agent/PrometheusAgent.py",
+      "SelfModificationGate": "Prometheus_Agent/Self_Modification_Gate.py",
+      "SuperBrainCompiler": "Prometheus_Agent/Super_Brain_Compiler.py",
+      "config": "Prometheus_Agent/config.json"
+    }
+  }
+}

@@ -2,6 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/Prometheus_Agent" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/prometheus_agent" vcs="Git" />
   </component>
 </project>

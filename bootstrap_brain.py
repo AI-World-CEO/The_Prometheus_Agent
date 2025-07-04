@@ -3,7 +3,7 @@ import os, sys, yaml, asyncio, shutil
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent
-SOURCE_ROOT = PROJECT_ROOT / "Prometheus_Agent"
+SOURCE_ROOT = PROJECT_ROOT / "prometheus_agent"
 CORPUS_DIR = SOURCE_ROOT / "Corpus"
 YAML_BRAIN_DIR = SOURCE_ROOT / "YAML_Brain"
 SUPER_BRAIN_FILE = SOURCE_ROOT / "Super_Brain.yaml"

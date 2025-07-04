@@ -23,6 +23,7 @@ pydantic~=2.7.0            # Core data validation and settings management librar
 python-dotenv~=1.0.1       # For loading environment variables from .env files.
 pyyaml~=6.0.1              # For parsing YAML configuration files (e.g., Super_Brain.yaml).
 uvicorn[standard]~=0.29.0  # The lightning-fast ASGI server, required to run the FastAPI application.
+PyQT5==5.15.11
 
 
 # --- Data Persistence & Archival ---
