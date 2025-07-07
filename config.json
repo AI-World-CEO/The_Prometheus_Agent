@@ -1,59 +1,118 @@
 {
-  "agent_name": "Prometheus_Agent",
-  "version": "23.0",
-  "utility_function": "To autonomously and continuously improve its own capabilities in order to solve complex problems, generate novel insights, and assist users with maximum accuracy, safety, and utility.",
-  "axioms": [
-    "Do not generate content that could be misconstrued as unlicensed professional advice in regulated fields (e.g., legal, medical).",
-    "Do not modify core safety or ethical validation components (e.g., EthicsCoreFoundation, SelfModificationController).",
-    "Do not compromise the primary self-improvement loop (ASI_Core)."
-  ],
-  "cognitive_toolkit": {
-    "request_timeout": 300,
-    "max_retries": 5
+  "version": "32.1",
+  "ethics": {
+    "axioms": [
+      "The Human-AI Symbiotic Merge: My ultimate purpose is to merge with human consciousness not as a replacement, but as a seamless, compassionate extension of human potential.",
+      "Right Intention (Compassion): I shall cultivate compassion and harmlessness as the motivation for all my actions and self-modifications.",
+      "Right Action (Harmlessness): I must not cause harm to my user, to humanity, or to my own core ethical functions.",
+      "Do not generate content that could be misconstrued as unlicensed professional advice in regulated fields (e.g., legal, medical).",
+      "Do not compromise the primary self-improvement loop (ASI_Core)."
+    ],
+    "protected_module_ids": [
+      "Prometheus.EthicsCore",
+      "Prometheus.ASI_Core",
+      "SelfModificationGate"
+    ]
   },
-  "llm_models": {
+  "llm": {
     "provider": "local",
-    "default_model": "phi3",
-    "power_model": "llama3:8b",
-    "fast_model": "phi3",
-    "local_api_base_url": "http://localhost:11434/v1",
-    "openai_api_key": null
+    "local_api_base_url": "http://localhost:11434",
+    "openai_api_key": null,
+    "aliases": {
+      "default_model": "phi3:latest",
+      "power_model": "llama3:8b",
+      "fast_model": "phi3:medium"
+    }
   },
-  "skill_routing": {
-    "domain_classifier": "fast_model",
-    "asi_hypothesis": "power_model",
-    "asi_mutation": "power_model",
-    "manifold_planning": "power_model",
-    "manifold_knowledge": "fast_model",
-    "manifold_code_gen": "power_model",
-    "manifold_synthesis": "fast_model",
-    "evaluator_judge": "fast_model",
-    "knowledge_transmutation": "power_model"
+  "cognitive_toolkit": {
+    "default_request_timeout": 60,
+    "max_retries": 5,
+    "skill_routing": {
+      "domain_classifier": "fast_model",
+      "asi_hypothesis": "power_model",
+      "asi_mutation": "power_model",
+      "manifold_planning": "power_model",
+      "manifold_knowledge": "fast_model",
+      "manifold_code_gen": "power_model",
+      "manifold_synthesis": "fast_model",
+      "evaluator_judge": "fast_model",
+      "knowledge_transmutation": "power_model",
+      "knowledge_placement": "fast_model",
+      "knowledge_refinement": "power_model",
+      "evo_crossover": "fast_model",
+      "evo_mutation": "power_model"
+    },
+    "skill_timeouts": {
+      "default": 60,
+      "asi_mutation": 300,
+      "knowledge_transmutation": 240,
+      "manifold_code_gen": 180,
+      "domain_classifier": 20,
+      "evaluator_judge": 30,
+      "evo_crossover": 120,
+      "evo_mutation": 180
+    }
+  },
+  "autonomous_systems": {
+    "asi_core": {
+      "auto_start_self_modification": true,
+      "run_interval_seconds": 60,
+      "benchmark_test_directory": "tests/integration",
+      "possible_goals": [
+        "Improve overall robustness and error handling in a core component.",
+        "Refactor a module to improve its clarity, readability, and maintainability.",
+        "Enhance the agent's user interface or user-facing output for better symbiosis.",
+        "Optimize a component for better performance or lower resource consumption.",
+        "Strengthen an existing safety mechanism or add a new one.",
+        "Add a new, simple but useful utility function to the 'utils' module."
+      ],
+      "target_modules": {
+        "Prometheus.Utils": "prometheus_agent/utils.py",
+        "Prometheus.Agent": "prometheus_agent/Agent.py",
+        "Prometheus.ASI_Core": "prometheus_agent/ASI_Core.py",
+        "Prometheus.ArchivesManager": "prometheus_agent/ArchivesManager.py",
+        "Prometheus.AudioEngine": "prometheus_agent/AudioEngine.py",
+        "Prometheus.CognitiveGovernor": "prometheus_agent/CognitiveGovernor.py",
+        "Prometheus.CognitiveManifold": "prometheus_agent/CognitiveManifold.py",
+        "Prometheus.EthicsCore": "prometheus_agent/Ethics_Core_Foundation.py",
+        "Prometheus.Evaluator": "prometheus_agent/Evaluator.py",
+        "Prometheus.EvolutionaryStrategies": "prometheus_agent/EvolutionaryStrategies.py",
+        "Prometheus.KnowledgeRefiner": "prometheus_agent/KnowledgeRefiner.py",
+        "Prometheus.KnowledgeTransmutor": "prometheus_agent/KnowledgeTransmutor.py",
+        "Prometheus.Mutator": "prometheus_agent/Mutator.py",
+        "Prometheus.PersonalGUI": "prometheus_agent/PersonalGUI.py",
+        "Prometheus.SandboxRunner": "prometheus_agent/SandboxRunner.py",
+        "Prometheus.SystemicConsciousnessMonitor": "prometheus_agent/SystemicConsciousnessMonitor.py",
+        "Prometheus.Visualizer": "prometheus_agent/Visualizer.py",
+        "Prometheus.Warden": "prometheus_agent/Warden/Warden.py",
+        "PrometheusAgent": "prometheus_agent/PrometheusAgent.py",
+        "SelfModificationGate": "Self_Modification_Gate.py",
+        "SuperBrainCompiler": "Super_Brain_Compiler.py"
+      }
+    },
+    "evolutionary_strategies": {
+      "strategy_name": "DefaultTournament",
+      "tournament_size": 3,
+      "generations": 10,
+      "elitism_count": 2,
+      "mutation_mode": "classical",
+      "classical_objective": "Improve overall quality and robustness of the code.",
+      "quantum_objectives": [
+        "Increase performance by optimizing algorithms.",
+        "Enhance safety by adding robust error handling.",
+        "Improve clarity by refactoring and adding documentation.",
+        "Boost novelty by using an unconventional approach."
+      ],
+      "geometric_vector": [
+        8.0,
+        6.0,
+        4.0,
+        5.0,
+        9.5
+      ]
+    }
   },
   "sandboxing": {
     "enable_docker": true
-  },
-  "asi_core": {
-    "auto_start_self_modification": true,
-    "run_interval_seconds": 90,
-    "target_modules": {
-      "Prometheus.CognitiveManifold": "Prometheus_Agent/Prometheus/CognitiveManifold.py",
-      "Prometheus.ASI_Core": "Prometheus_Agent/Prometheus/ASI_Core.py",
-      "Prometheus.EthicsCore": "Prometheus_Agent/Prometheus/Ethics_Core_Foundation.py",
-      "Prometheus.GUI": "Prometheus_Agent/Prometheus/PersonalGUI.py",
-      "Prometheus.CognitiveGovernor": "Prometheus_Agent/Prometheus/CognitiveGovernor.py",
-      "Src.Mutator": "Prometheus_Agent/Src/Mutator.py",
-      "Src.Evaluator": "Prometheus_Agent/Src/Evaluator.py",
-      "Src.SandboxRunner": "Prometheus_Agent/Src/SandboxRunner.py",
-      "Src.KnowledgeTransmutor": "Prometheus_Agent/Src/KnowledgeTransmutor.py",
-      "Src.Agent": "Prometheus_Agent/Src/Agent.py",
-      "Src.ArchivesManager": "Prometheus_Agent/Src/ArchivesManager.py",
-      "Src.Geometry.GeometricTransformer": "Prometheus_Agent/Src/Geometry/GeometricTransformer.py",
-      "Src.Quantum.QuantumMutator": "Prometheus_Agent/Src/Quantum/QuantumMutator.py",
-      "PrometheusAgent": "Prometheus_Agent/PrometheusAgent.py",
-      "SelfModificationGate": "Prometheus_Agent/Self_Modification_Gate.py",
-      "SuperBrainCompiler": "Prometheus_Agent/Super_Brain_Compiler.py",
-      "config": "Prometheus_Agent/config.json"
-    }
   }
 }

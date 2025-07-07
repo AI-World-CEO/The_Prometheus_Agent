@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 
 # --- Correct, Absolute Imports from the Main Source Package ---
-# These paths are now correct for the new project structure.
 from prometheus_agent.Agent import Agent
 from prometheus_agent.ArchivesManager import ArchiveManager
 from prometheus_agent.Visualizer import Visualizer
@@ -40,7 +39,6 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         """Set up a mocked ArchiveManager and instantiate the Visualizer."""
         self.mock_archive_manager = MagicMock(spec=ArchiveManager)
-        # Pass the mocked manager to the Visualizer
         self.visualizer = Visualizer(archive_manager=self.mock_archive_manager)
 
         # Create a sample population of agents for the tests
@@ -49,34 +47,45 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
         self.agent3 = create_mock_agent(score=9.0, vector=[9, 8, 9, 9, 9], agent_id="agent-003", parent_id="agent-001")
         self.test_population = [self.agent1, self.agent2, self.agent3]
 
-    @patch('webbrowser.open')
-    @patch('plotly.graph_objects.Figure.write_html')
-    async def test_01_visualize_lineage_success(self, mock_write_html, mock_webbrowser):
+    # --- THE FIX: The patch target is the Figure class itself, not its methods. ---
+    @patch('prometheus_agent.Visualizer.go.Figure')
+    @patch('prometheus_agent.Visualizer.webbrowser.open')
+    async def test_01_visualize_lineage_success(self, mock_webbrowser, mock_figure_class):
         """
-        Test (Golden Path): Verifies that visualize_lineage correctly processes
-        agents, builds a graph, and calls the plotting function with valid data.
+        Test (Golden Path): Verifies visualize_lineage correctly processes agents,
+        builds a graph, and calls the plotting function with valid data.
         """
         # --- Arrange ---
         self.mock_archive_manager.query_agents = AsyncMock(return_value=self.test_population)
+
+        # Create a mock instance that will be returned when Figure() is called
+        mock_fig_instance = MagicMock()
+        mock_figure_class.return_value = mock_fig_instance
 
         # --- Act ---
         await self.visualizer.visualize_lineage()
 
         # --- Assert ---
         self.mock_archive_manager.query_agents.assert_called_once()
-        mock_write_html.assert_called_once()
+        mock_figure_class.assert_called_once()
+        mock_fig_instance.write_html.assert_called_once()
         mock_webbrowser.assert_called_once()
 
-        fig = mock_write_html.call_args[0][0]
-        self.assertEqual(len(fig.data), 2, "Figure should have one edge trace and one node trace.")
-        node_trace = fig.data[1]
-        self.assertEqual(len(node_trace.x), 3, "Node trace should have data for 3 agents.")
-        self.assertIn("agent-001", node_trace.text[0])
-        self.assertIn("Score: 9.00", node_trace.text[2])
+        # Get the arguments passed to the Figure constructor
+        fig_args, fig_kwargs = mock_figure_class.call_args
+        fig_data = fig_kwargs.get('data', [])
 
-    @patch('webbrowser.open')
-    @patch('plotly.graph_objects.Figure.write_html')
-    async def test_02_visualize_lineage_no_agents(self, mock_write_html, mock_webbrowser):
+        self.assertEqual(len(fig_data), 2, "Figure should be created with two traces (edges, nodes).")
+        node_trace = fig_data[1]  # The second trace is for nodes
+
+        self.assertEqual(len(node_trace.x), 3, "Node trace should have data for 3 agents.")
+        # We can't know the order due to the graph layout, so we check for presence
+        self.assertTrue(any("agent-001" in text for text in node_trace.text))
+        self.assertTrue(any("Score: 9.00" in text for text in node_trace.text))
+
+    @patch('prometheus_agent.Visualizer.webbrowser.open')
+    @patch('prometheus_agent.Visualizer.go.Figure')
+    async def test_02_visualize_lineage_no_agents(self, mock_figure_class, mock_webbrowser):
         """
         Test (Edge Case): Ensures visualize_lineage handles an empty agent list
         gracefully without error.
@@ -89,14 +98,13 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
 
         # --- Assert ---
         self.mock_archive_manager.query_agents.assert_called_once()
-        mock_write_html.assert_not_called()
+        mock_figure_class.assert_not_called()
         mock_webbrowser.assert_not_called()
 
-    # The patch path must now reflect the new absolute import path
-    @patch('webbrowser.open')
-    @patch('plotly.graph_objects.Figure.write_html')
+    @patch('prometheus_agent.Visualizer.webbrowser.open')
+    @patch('prometheus_agent.Visualizer.go.Figure')
     @patch('prometheus_agent.Visualizer.PCA')
-    async def test_03_visualize_cognitive_space_success(self, mock_pca, mock_write_html, mock_webbrowser):
+    async def test_03_visualize_cognitive_space_success(self, mock_pca, mock_figure_class, mock_webbrowser):
         """
         Test (Golden Path): Verifies visualize_cognitive_space correctly extracts
         vectors, performs dimensionality reduction, and plots the result.
@@ -108,6 +116,9 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
         mock_pca_instance.fit_transform.return_value = np.array([[0, 1], [1, 0], [0.5, 0.5]])
         mock_pca.return_value = mock_pca_instance
 
+        mock_fig_instance = MagicMock()
+        mock_figure_class.return_value = mock_fig_instance
+
         # --- Act ---
         await self.visualizer.visualize_cognitive_space(method='PCA')
 
@@ -115,19 +126,22 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
         self.mock_archive_manager.query_agents.assert_called_once()
         mock_pca.assert_called_once_with(n_components=2)
         mock_pca_instance.fit_transform.assert_called_once()
-        mock_write_html.assert_called_once()
+        mock_figure_class.assert_called_once()
+        mock_fig_instance.write_html.assert_called_once()
         mock_webbrowser.assert_called_once()
 
-        fig = mock_write_html.call_args[0][0]
-        scatter_trace = fig.data[0]
+        fig_args, fig_kwargs = mock_figure_class.call_args
+        fig_data = fig_kwargs.get('data', [])
+
+        scatter_trace = fig_data[0]
         self.assertEqual(len(scatter_trace.x), 3)
         self.assertEqual(scatter_trace.x[0], 0)
         self.assertEqual(scatter_trace.y[1], 0)
-        self.assertIn("Vector: [9. 8. 9. 9. 9.]", scatter_trace.text[2])
+        self.assertTrue(any("Vector: [9. 8. 9. 9. 9.]" in text for text in scatter_trace.text))
 
-    @patch('webbrowser.open')
-    @patch('plotly.graph_objects.Figure.write_html')
-    async def test_04_visualize_cognitive_space_insufficient_data(self, mock_write_html, mock_webbrowser):
+    @patch('prometheus_agent.Visualizer.webbrowser.open')
+    @patch('prometheus_agent.Visualizer.go.Figure')
+    async def test_04_visualize_cognitive_space_insufficient_data(self, mock_figure_class, mock_webbrowser):
         """
         Test (Edge Case): Ensures cognitive space visualization is aborted if there
         are not enough agents with geometric data.
@@ -140,11 +154,5 @@ class TestVisualizer(unittest.IsolatedAsyncioTestCase):
 
         # --- Assert ---
         self.mock_archive_manager.query_agents.assert_called_once()
-        mock_write_html.assert_not_called()
+        mock_figure_class.assert_not_called()
         mock_webbrowser.assert_not_called()
-
-
-if __name__ == '__main__':
-    # This setup allows you to run this test file directly, assuming your
-    # IDE's test runner is configured to start from the project root.
-    unittest.main()

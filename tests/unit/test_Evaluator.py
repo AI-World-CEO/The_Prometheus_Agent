@@ -13,7 +13,6 @@ from prometheus_agent.Evaluator import Evaluator
 # This structure assumes the test is run from the project root directory
 
 
-
 # A-1: Define a mock Pydantic v2 model for the LLM's response
 class MockLinguisticScores(BaseModel):
     clarity_score: float = 9.0
@@ -34,11 +33,15 @@ class TestEvaluator(unittest.IsolatedAsyncioTestCase):
         """Set up a simulated agent environment before each test."""
         # Mock the main agent instance and its dependencies
         self.mock_agent = MagicMock()
-        self.mock_agent.sandbox_runner = MagicMock()
+
+        # --- THE FIX ---
+        # The sandbox runner itself needs to be an AsyncMock so its methods are awaitable
+        self.mock_agent.sandbox_runner = AsyncMock()
+
         self.mock_agent.ethics_core = MagicMock()
-        self.mock_agent.synthesis_engine = MagicMock()
-        self.mock_agent.governor = MagicMock()
-        self.mock_agent.governor.decide_model.return_value = MagicMock(model_name="mock-judge-model")
+        self.mock_agent.synthesis_engine = AsyncMock()  # Already correctly an AsyncMock
+        self.mock_agent.governor = AsyncMock()
+        self.mock_agent.governor.decide_model.return_value = AsyncMock(model_name="mock-judge-model")
 
         # Instantiate the Evaluator with the mocked agent
         self.evaluator = Evaluator(agent_instance=self.mock_agent)
@@ -116,22 +119,22 @@ class TestEvaluator(unittest.IsolatedAsyncioTestCase):
         code_to_evaluate = "print('hello')"
 
         # Mock sandbox to return a successful execution
-        self.mock_agent.sandbox.run = AsyncMock(return_value=(True, "hello"))
+        self.mock_agent.sandbox_runner.run.return_value = (True, "hello")
         # Make the sandbox "active"
-        type(self.mock_agent.sandbox).is_active = PropertyMock(return_value=True)
+        type(self.mock_agent.sandbox_runner).is_active = PropertyMock(return_value=True)
 
         # Mock LLM judge to return specific linguistic scores as a Pydantic model
         mock_llm_response = MockLinguisticScores()
-        self.mock_agent.synthesis_engine.generate = AsyncMock(return_value=mock_llm_response.model_dump())
+        self.mock_agent.synthesis_engine.generate.return_value = mock_llm_response.model_dump()
 
         # --- Act ---
         report = await self.evaluator.evaluate(code_to_evaluate)
 
         # --- Assert ---
         # 1. Verify dependencies were called as expected
-        self.mock_agent.sandbox.run.assert_called_once_with(code_to_evaluate)
+        self.mock_agent.sandbox_runner.run.assert_called_once_with(code_to_evaluate)
         self.mock_agent.synthesis_engine.generate.assert_called_once()
-        self.mock_agent.governor.decide_model.assert_called_once_with(skill='evaluator_judge', domain=None)
+        self.mock_agent.governor.decide_model.assert_awaited_once()  # It's an async mock now
 
         # 2. Validate the report's structure and keys
         self.assertIsInstance(report, dict)

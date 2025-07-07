@@ -7,18 +7,13 @@ import shutil
 import numpy as np
 from typing import List
 
+# --- Path Setup ---
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from prometheus_agent.Agent import Agent
 from prometheus_agent.ArchivesManager import ArchiveManager
-
-# --- Path Setup ---
-project_root = os.path.dirname(os.path.abspath(__file__))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-# ---
-
-
-
-
 
 async def create_demo_archive(archive_root="Archives/main_archive/", num_agents=20):
     """
@@ -26,18 +21,21 @@ async def create_demo_archive(archive_root="Archives/main_archive/", num_agents=
     This script will DELETE any existing archive at the specified location.
     """
     print(f"--- Generating Demo Archive at '{archive_root}' ---")
+    archive_path = os.path.join(project_root, archive_root)
 
-    if os.path.exists(archive_root):
-        print(f"Warning: Existing archive at '{archive_root}' will be deleted.")
-        shutil.rmtree(archive_root)
+    if os.path.exists(archive_path):
+        print(f"Warning: Existing archive at '{archive_path}' will be deleted.")
+        shutil.rmtree(archive_path)
 
-    archive = ArchiveManager(archive_root=archive_root)
+    # Use the async factory to create the archive manager
+    archive = await ArchiveManager.create(archive_root=archive_path)
 
     # Create a population of diverse agents
     agents_to_save: List[Agent] = []
     parent_id = None
 
     for i in range(num_agents):
+        # --- FIX: Restored the entire agent creation logic inside the loop ---
         # Simulate different quality levels and states
         score = 5.0 + (i / num_agents) * 5.0  # Scores from 5.0 up to just under 10.0
 
@@ -81,8 +79,20 @@ async def create_demo_archive(archive_root="Archives/main_archive/", num_agents=
     print("\n--- Demo Archive Generation Complete ---")
     print(f"Database created at: '{archive.db_path}'")
     print(f"Code store created at: '{archive.code_store_path}'")
-    best_agent = (await archive.get_best_agent())[0]
-    print(f"Best agent in demo archive has score: {best_agent.metadata.final_score:.2f}")
+
+    # Query for a high-scoring agent to confirm success
+    top_agents = await archive.query_agents(limit=1, min_score=9.5)
+    if top_agents:
+        best_agent = top_agents[0]
+        print(f"Best agent in demo archive has score: {best_agent.metadata.final_score:.2f}")
+    else:
+        # If no agent scores that high, just get the best one overall.
+        top_agents = await archive.query_agents(limit=1)
+        if top_agents:
+            best_agent = top_agents[0]
+            print(f"Best agent in demo archive has score: {best_agent.metadata.final_score:.2f}")
+        else:
+            print("No agents found in the archive.")
 
 
 if __name__ == "__main__":

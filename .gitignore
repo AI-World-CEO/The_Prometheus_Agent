@@ -1,4 +1,11 @@
-# Prometheus_Agent/.gitignore
+# ==============================================================================
+# Prometheus Agent - Definitive .gitignore
+# ==============================================================================
+# This file specifies intentionally untracked files to ignore.
+# A clean .gitignore is a sign of a professional, well-managed project.
+# It ensures the repository contains ONLY source code, not generated artifacts,
+# secrets, or local environment files.
+# ==============================================================================
 
 # --- Python ---
 # Byte-compiled / optimized / C extensions
@@ -30,7 +37,8 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# --- Virtual Environments ---
+# Never commit your virtual environment.
 .venv/
 venv/
 env/
@@ -42,6 +50,7 @@ venv.bak
 
 # --- Secrets ---
 # The .env file is explicitly ignored to prevent committing secret API keys.
+# Always use a .env.example file to show what variables are needed.
 .env
 *.env.*
 !/.env.example
@@ -70,29 +79,32 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 
-# --- Project Specific ---
-# Ignore generated archive files and databases. These are data, not source code.
+# --- Project Specific Generated Artifacts ---
+
+# Ignore entire directories for generated data
 Archives/
+Logs/
+
+# Ignore specific file types that are generated as artifacts
 *.sqlite
 *.sqlite-journal
-
-# Ignore generated log files and reports
-Logs/
 *.log
+
+# Ignore generated visualization and report files
+*.html
+*.png
 *.md.html
 evaluation_suite_results.json
 evaluation_summary.md
 
-# Ignore generated visualization files
-*.html
-*.png
+# Ignore backup files created by the ASI_Core during self-modification
+*.bak
 
-# Ignore Terraform state files
+# Ignore the compiled super-brain. It is generated from the YAML_Brain source.
+Super_Brain.yaml
+
+# --- Infrastructure as Code (Optional but good practice) ---
 .terraform/
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.backup
-
-# --- Agent Runtime Artifacts ---
-# Ignore backup files created by the ASI_Core during self-modification.
-*.bak

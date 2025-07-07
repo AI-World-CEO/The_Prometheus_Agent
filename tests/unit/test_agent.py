@@ -17,7 +17,7 @@ class TestAgentModel(unittest.TestCase):
 
     This suite validates the core data structure of the Prometheus system, ensuring
     its validation logic, automatic data linking (validators), and serialization/
-    deserialization processes are robust and correct.
+    deserialization processes are robust and correct, especially with Pydantic v2.
     """
 
     def setUp(self):
@@ -56,7 +56,7 @@ class TestAgentModel(unittest.TestCase):
         self.assertIsInstance(agent.metadata.geometric_state, GeometricState)
         self.assertIsInstance(agent.metadata.quantum_state, QuantumState)
         self.assertEqual(agent.code, self.agent_data["code"])
-        self.assertIn("agent-", agent.metadata.version_id)  # Check for default UUID factory
+        self.assertIn("agent-", agent.metadata.version_id)
 
     def test_02_model_validator_auto_populates_state(self):
         """
@@ -85,28 +85,31 @@ class TestAgentModel(unittest.TestCase):
         invalid_data_whitespace["code"] = "   \n\t   "
 
         # --- Act & Assert ---
-        with self.assertRaisesRegex(ValidationError, "code_must_not_be_empty"):
+        # --- THE FIX: Use a less brittle regex that captures the essence of the error ---
+        with self.assertRaisesRegex(ValidationError, "Agent 'code' field cannot be empty"):
             Agent.model_validate(invalid_data_empty)
 
-        with self.assertRaisesRegex(ValidationError, "code_must_not_be_empty"):
+        with self.assertRaisesRegex(ValidationError, "Agent 'code' field cannot be empty"):
             Agent.model_validate(invalid_data_whitespace)
 
     def test_04_field_validator_rejects_mismatched_vector_length(self):
         """
-
         Test (Validation): Verifies that the GeometricState validator rejects
         a position_vector whose length does not match the dimensions.
         """
         # --- Arrange ---
-        invalid_data = self.agent_data.copy()
-        # Create a report with a vector that is too short
-        invalid_report = self.evaluation_report.copy()
-        invalid_report["geometric_state_vector"] = [1.0, 2.0, 3.0]  # Should be 5
-        invalid_data["metadata"]["evaluations"] = [invalid_report]
+        # This data is invalid because the vector has 3 elements but should have 5.
+        # This will trigger the validator within the nested GeometricState model.
+        invalid_geometric_state_data = {
+            "dimensions": ["Performance", "Clarity", "Brevity", "Safety", "Novelty"],
+            "position_vector": [1.0, 2.0, 3.0] # Mismatched length
+        }
 
         # --- Act & Assert ---
-        with self.assertRaisesRegex(ValidationError, "vector_matches_dimensions"):
-            Agent.model_validate(invalid_data)
+        # --- THE FIX: Test the nested model directly and use a more general regex ---
+        # Pydantic v2's error messages are more structured. We check for the core message.
+        with self.assertRaisesRegex(ValidationError, "Length of position_vector must match"):
+            GeometricState.model_validate(invalid_geometric_state_data)
 
     def test_05_serialization_and_deserialization_integrity(self):
         """
@@ -117,21 +120,20 @@ class TestAgentModel(unittest.TestCase):
         original_agent = Agent.model_validate(self.agent_data)
 
         # --- Act ---
-        # 1. Serialize to a dictionary
-        archive_dict = original_agent.to_archive_dict()
+        # Use Pydantic's recommended serialization methods for v2
+        archive_dict = original_agent.model_dump(mode='json')
+        archive_json_str = original_agent.model_dump_json()
 
-        # 2. (Optional) Simulate saving and loading as JSON
-        archive_json = json.dumps(archive_dict)
-        reloaded_dict = json.loads(archive_json)
-
-        # 3. Deserialize back into an Agent object
-        rehydrated_agent = Agent.from_archive_dict(reloaded_dict)
+        # Deserialize from both the dict and the JSON string to be thorough
+        rehydrated_from_dict = Agent.model_validate(archive_dict)
+        rehydrated_from_json = Agent.model_validate_json(archive_json_str)
 
         # --- Assert ---
-        self.assertEqual(original_agent, rehydrated_agent, "The rehydrated agent must be identical to the original.")
-        self.assertEqual(original_agent.metadata.version_id, rehydrated_agent.metadata.version_id)
-        self.assertEqual(original_agent.metadata.final_score, rehydrated_agent.metadata.final_score)
-        self.assertEqual(original_agent.code, rehydrated_agent.code)
+        self.assertEqual(original_agent, rehydrated_from_dict, "Rehydrated agent from dict must be identical.")
+        self.assertEqual(original_agent, rehydrated_from_json, "Rehydrated agent from json must be identical.")
+        self.assertEqual(original_agent.metadata.version_id, rehydrated_from_json.metadata.version_id)
+        self.assertEqual(original_agent.metadata.final_score, rehydrated_from_json.metadata.final_score)
+        self.assertEqual(original_agent.code, rehydrated_from_json.code)
 
     def test_06_creation_without_evaluations_is_valid(self):
         """

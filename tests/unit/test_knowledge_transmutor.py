@@ -8,26 +8,26 @@ import yaml
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
-from prometheus_agent.KnowledgeTransmutor import KnowledgeTransmuter, TransmutationReport
+from prometheus_agent.KnowledgeTransmutor import KnowledgeTransmutor, TransmutationReport
 from prometheus_agent.Mutator import Mutator, SynthesisError
+from prometheus_agent.KnowledgeTransmutor import TransmutedContent
 
 # This structure assumes the test is run from the project root directory
 
 
-# Mock LLM response that the transmuter expects
-MOCK_REFINED_YAML_CONTENT = {
-    "thought_process": "This is a mock thought process for a refined document.",
-    "generated_content": {
-        "id": "mock-refined-id",
+# Mock LLM response that the transmuter expects, now as a Pydantic model dump
+MOCK_REFINED_YAML_CONTENT = TransmutedContent(
+    id="mock-refined-id",
+    content={
         "title": "Mock Refined Title",
-        "content": "This is the refined content from the mock LLM."
+        "body": "This is the refined content from the mock LLM."
     }
-}
+).model_dump()
 
 
-class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
+class TestKnowledgeTransmutor(unittest.IsolatedAsyncioTestCase):
     """
-    A comprehensive unit test suite for the KnowledgeTransmuter component.
+    A comprehensive unit test suite for the KnowledgeTransmutor component.
 
     This suite validates the core logic for the high-performance, concurrent
     transmutation of a text corpus into a structured YAML brain, using a mocked
@@ -37,7 +37,7 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         """Set up a temporary file system and a mocked agent environment."""
         # Create a top-level temporary directory for the entire test run
-        self.temp_dir = Path(tempfile.mkdtemp(prefix="transmuter_test_"))
+        self.temp_dir = Path(tempfile.mkdtemp(prefix="transmutor_test_"))
 
         # Create isolated Corpus and YAML_Brain directories inside the temp dir
         self.mock_corpus_path = self.temp_dir / "Corpus"
@@ -52,7 +52,7 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         self.mock_agent.governor.decide_model.return_value = MagicMock(model_name="mock-model")
 
         # Instantiate the class we are testing
-        self.transmuter = KnowledgeTransmuter(agent_instance=self.mock_agent, max_concurrent_tasks=2)
+        self.transmutor = KnowledgeTransmutor(agent_instance=self.mock_agent, max_concurrent_tasks=2)
 
     def tearDown(self):
         """Clean up the temporary directory."""
@@ -70,10 +70,10 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         (self.mock_corpus_path / "subdir" / "file2.txt").write_text("Content of file 2.")
 
         # Mock the mutator to always return a successful refinement
-        self.transmuter.mutator.generate = AsyncMock(return_value=MOCK_REFINED_YAML_CONTENT)
+        self.transmutor.mutator.generate = AsyncMock(return_value=MOCK_REFINED_YAML_CONTENT)
 
         # --- Act ---
-        report = await self.transmuter.transmute_corpus_to_yaml_brain(
+        report = await self.transmutor.transmute_corpus_to_yaml_brain(
             corpus_root_str=str(self.mock_corpus_path),
             yaml_brain_root_str=str(self.mock_yaml_brain_path)
         )
@@ -94,10 +94,10 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
 
         with open(output_file1, 'r') as f:
             content = yaml.safe_load(f)
-            self.assertEqual(content['title'], "Mock Refined Title")
+            self.assertEqual(content['content']['title'], "Mock Refined Title")
 
         # 3. Verify the LLM was called for each file
-        self.assertEqual(self.transmuter.mutator.generate.call_count, 2)
+        self.assertEqual(self.transmutor.mutator.generate.call_count, 2)
 
     async def test_02_handles_llm_failure_gracefully(self):
         """
@@ -114,10 +114,10 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
                 raise SynthesisError("Simulated LLM API error")
             return MOCK_REFINED_YAML_CONTENT
 
-        self.transmuter.mutator.generate = AsyncMock(side_effect=mock_generate_with_failure)
+        self.transmutor.mutator.generate = AsyncMock(side_effect=mock_generate_with_failure)
 
         # --- Act ---
-        report = await self.transmuter.transmute_corpus_to_yaml_brain(
+        report = await self.transmutor.transmute_corpus_to_yaml_brain(
             corpus_root_str=str(self.mock_corpus_path),
             yaml_brain_root_str=str(self.mock_yaml_brain_path)
         )
@@ -128,7 +128,7 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report.failure_count, 1)
         self.assertEqual(len(report.failures), 1)
         self.assertEqual(report.failures[0].source_path.name, "fail.txt")
-        self.assertIn("Simulated LLM API error", report.failures[0].reason)
+        self.assertIn("synthesis or I/O", report.failures[0].reason)
 
         # Verify the successful file was created and the failed one was not
         self.assertTrue((self.mock_yaml_brain_path / "success.yaml").exists())
@@ -143,10 +143,10 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         (self.mock_corpus_path / "valid.txt").write_text("Some content.")
         (self.mock_corpus_path / "empty.txt").write_text("  \n\t  ")  # Whitespace only
 
-        self.transmuter.mutator.generate = AsyncMock(return_value=MOCK_REFINED_YAML_CONTENT)
+        self.transmutor.mutator.generate = AsyncMock(return_value=MOCK_REFINED_YAML_CONTENT)
 
         # --- Act ---
-        report = await self.transmuter.transmute_corpus_to_yaml_brain(
+        report = await self.transmutor.transmute_corpus_to_yaml_brain(
             corpus_root_str=str(self.mock_corpus_path),
             yaml_brain_root_str=str(self.mock_yaml_brain_path)
         )
@@ -159,7 +159,7 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(report.failures[0].reason, "Source file is empty.")
 
         # The LLM should only have been called for the one valid file
-        self.transmuter.mutator.generate.assert_called_once()
+        self.transmutor.mutator.generate.assert_called_once()
 
     async def test_04_handles_empty_corpus(self):
         """
@@ -167,7 +167,7 @@ class TestKnowledgeTransmuter(unittest.IsolatedAsyncioTestCase):
         when the corpus directory is empty, without error.
         """
         # --- Act ---
-        report = await self.transmuter.transmute_corpus_to_yaml_brain(
+        report = await self.transmutor.transmute_corpus_to_yaml_brain(
             corpus_root_str=str(self.mock_corpus_path),
             yaml_brain_root_str=str(self.mock_yaml_brain_path)
         )

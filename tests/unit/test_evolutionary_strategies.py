@@ -13,7 +13,6 @@ from prometheus_agent.EvolutionaryStrategies import EvolutionaryStrategyEngine
 # This structure assumes the test is run from the project root directory
 
 
-
 # A-1: We need to create a mock Pydantic v2-compliant Agent for testing
 def create_mock_agent(score: float, code: str = "pass", parent_id: str = None) -> Agent:
     """Helper function to create a validated Agent object with a specific score."""
@@ -25,6 +24,7 @@ def create_mock_agent(score: float, code: str = "pass", parent_id: str = None) -
         "metadata": {
             "parent_id": parent_id,
             "origin_prompt": "Test Agent",
+            "reasoning_path": ["creation"],
             "evaluations": [eval_report],
         },
         "code": code
@@ -46,24 +46,28 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
         """
         Set up a mocked environment for the EvolutionaryStrategyEngine.
         """
-        # A sample config for the engine
-        self.config = {
-            'strategy_name': 'TestStrategy',
-            'tournament_size': 3,
-            'generations': 2,  # Keep low for fast tests
-            'elitism_count': 1,
-            'mutation_mode': 'classical',
-            'classical_objective': 'Improve quality'
+        # --- THE FIX: Correctly instantiate the engine via a mocked agent instance ---
+        self.mock_agent = MagicMock()
+        self.mock_agent.config = {
+            "evolutionary_strategies": {
+                'strategy_name': 'TestStrategy',
+                'tournament_size': 3,
+                'generations': 2,
+                'elitism_count': 1,
+                'mutation_mode': 'classical',
+                'classical_objective': 'Improve quality'
+            }
         }
+        # Mock all dependencies that the engine will receive from the agent instance
+        self.mock_agent.evaluator = MagicMock()
+        self.mock_agent.synthesis_engine = MagicMock()
+        self.mock_agent.governor = MagicMock()
+        self.mock_agent.governor.decide_model = AsyncMock(return_value=MagicMock(timeout_seconds=10))
+        self.mock_agent.ethics_core = MagicMock()
+        self.mock_agent.geometric_transformer = MagicMock()
 
-        # Instantiate the engine with a dummy API key and the test config
-        self.engine = EvolutionaryStrategyEngine(api_key="sk-dummy", config=self.config)
-
-        # --- Mock all external dependencies of the engine ---
-        self.engine.evaluator = MagicMock()
-        self.engine.mutator = MagicMock()
-        self.engine.quantum_mutator = MagicMock()
-        self.engine.geometric_transformer = MagicMock()
+        # Instantiate the engine with the mocked agent
+        self.engine = EvolutionaryStrategyEngine(agent_instance=self.mock_agent)
 
         # Create an initial population for testing
         self.initial_population = [create_mock_agent(score=i) for i in range(1, 6)]  # Scores: 1, 2, 3, 4, 5
@@ -82,8 +86,6 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
 
         # --- Assert ---
         self.assertEqual(len(selected_parents), num_to_select)
-        # In a tournament, it's highly probable but not guaranteed that the best individuals are chosen
-        # A simple assertion is to check if all selected parents are valid agents.
         for parent in selected_parents:
             self.assertIsInstance(parent, Agent)
 
@@ -96,18 +98,15 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
         parent1 = create_mock_agent(score=9, code="def parent1_func(): pass")
         parent2 = create_mock_agent(score=8, code="def parent2_func(): pass")
 
-        # Mock the mutator's generate method to return a predictable child
-        self.engine.mutator.generate = AsyncMock(return_value={"generated_content": "def child_func(): pass"})
+        # --- THE FIX: mutator.generate now returns raw code (a string) ---
+        self.engine.mutator.generate = AsyncMock(return_value="def child_func(): pass")
 
         # --- Act ---
         child_agent = await self.engine._crossover(parent1, parent2)
 
         # --- Assert ---
-        # 1. Verify the mutator was called
-        self.engine.mutator.generate.assert_called_once()
-        # 2. Check that the generated code is in the child
+        self.engine.mutator.generate.assert_awaited_once()
         self.assertEqual(child_agent.code, "def child_func(): pass")
-        # 3. Verify the child's lineage is correctly set
         self.assertEqual(child_agent.metadata.parent_id, parent1.metadata.version_id)
         self.assertIn("Crossover", child_agent.metadata.origin_prompt)
 
@@ -118,13 +117,13 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
         """
         # --- Arrange ---
         parent_agent = create_mock_agent(score=7, code="def original_func(): pass")
-        self.engine.mutator.generate = AsyncMock(return_value={"generated_content": "def mutated_func(): pass"})
+        self.engine.mutator.generate = AsyncMock(return_value="def mutated_func(): pass")
 
         # --- Act ---
         mutated_agent = await self.engine._mutate(parent_agent)
 
         # --- Assert ---
-        self.engine.mutator.generate.assert_called_once()
+        self.engine.mutator.generate.assert_awaited_once()
         self.assertEqual(mutated_agent.code, "def mutated_func(): pass")
         self.assertEqual(mutated_agent.metadata.parent_id, parent_agent.metadata.version_id)
         self.assertIn("mutation", mutated_agent.metadata.origin_prompt)
@@ -136,25 +135,32 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
         """
 
         # --- Arrange ---
-        # Mock the evaluation to simply increase scores each generation to simulate improvement
-        async def mock_evaluate(population: List[Agent]):
+        # Mock the evaluation to simulate improvement
+        async def mock_evaluate_population(population: List[Agent]) -> List[Agent]:
+            evaluated_pop = []
             for agent in population:
-                # Use a simple hash to give a pseudo-random but deterministic score
                 new_score = (hash(agent.code) % 50) / 10.0 + 5.0  # Scores between 5 and 10
-                agent.metadata.evaluations.append({"final_score": new_score})
-                # Re-validate the Pydantic model to trigger the auto-linking of the score
-                agent.model_validate(agent.model_dump())
-            return population
+                # --- THE FIX: Create a new agent instance with the updated evaluation
+                # This mirrors the real logic where a new agent object is created
+                agent_data = agent.model_dump()
+                agent_data['metadata']['evaluations'].append({"final_score": new_score})
+                evaluated_agent = Agent.model_validate(agent_data)
+                evaluated_pop.append(evaluated_agent)
+            return evaluated_pop
 
-        self.engine._evaluate_population = mock_evaluate
+        # We patch the method on the instance for this specific test
+        self.engine._evaluate_population = mock_evaluate_population
 
-        # Mock crossover and mutation to produce predictable offspring
+        # Mock crossover and mutation
         async def mock_crossover(p1: Agent, p2: Agent):
             return create_mock_agent(score=0, code=f"crossover({p1.code}, {p2.code})", parent_id=p1.metadata.version_id)
 
         async def mock_mutate(agent: Agent):
-            agent.code = f"mutated({agent.code})"
-            return agent
+            # This needs to return a new Agent instance to get a new version_id
+            mutated_data = agent.model_dump()
+            mutated_data['code'] = f"mutated({agent.code})"
+            mutated_data['metadata'].pop('version_id', None)  # Get a new ID
+            return Agent.model_validate(mutated_data)
 
         self.engine._crossover = mock_crossover
         self.engine._mutate = mock_mutate
@@ -164,13 +170,9 @@ class TestEvolutionaryStrategyEngine(unittest.IsolatedAsyncioTestCase):
 
         # --- Assert ---
         self.assertIsInstance(best_agent, Agent)
-        # The best agent should have a high score, indicating it went through the process
         self.assertGreater(best_agent.metadata.final_score, 5.0)
-        # The code should show evidence of crossover and mutation
         self.assertIn("mutated", best_agent.code)
         self.assertIn("crossover", best_agent.code)
-        # Check that the number of "generations" was respected
-        # A simple way to check is lineage depth. A 2-gen run will have a child of a child.
         self.assertIsNotNone(best_agent.metadata.parent_id)
 
 
